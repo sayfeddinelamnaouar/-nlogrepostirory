@@ -1,0 +1,95 @@
+<?php
+// Start de sessie
+session_start();
+
+// Verbinding maken met de database
+$host = 'localhost';
+$username = 'database_user';
+$password = 'database_password';
+$dbname = 'database_name';
+
+$conn = mysqli_connect($host, $username, $password, $dbname);
+
+// Controleren op connectie fouten
+if (!$conn) {
+    die("Connection failed: " . mysqli_connect_error());
+}
+
+// Controleren of de gebruiker is ingelogd
+if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] == true) {
+    header('Location: welcome.php');
+}
+
+// Verwerking van inloggegevens
+if (isset($_POST['username']) && isset($_POST['password'])) {
+    // Gebruikersinvoer verkrijgen
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    // Controleren of gebruikersnaam en wachtwoord overeenkomen met de database
+    $query = "SELECT id, username, password FROM users WHERE username='$username'";
+    $result = mysqli_query($conn, $query);
+
+    if (mysqli_num_rows($result) > 0) {
+        $row = mysqli_fetch_assoc($result);
+        if (password_verify($password, $row['password'])) {
+            // Inloggegevens zijn correct, sessie starten
+            $_SESSION['loggedin'] = true;
+            $_SESSION['username'] = $username;
+            $_SESSION['id'] = $row['id'];
+
+            header('Location: welcome.php');
+        } else {
+            echo 'Verkeerd wachtwoord!';
+        }
+    } else {
+        echo 'Gebruikersnaam bestaat niet!';
+    }
+}
+
+// Verwerking van registratiegegevens
+if (isset($_POST['reg_username']) && isset($_POST['reg_password'])) {
+    // Gebruikersinvoer verkrijgen
+    $reg_username = $_POST['reg_username'];
+    $reg_password = password_hash($_POST['reg_password'], PASSWORD_DEFAULT);
+
+    // Controleren of de gebruikersnaam al in de database bestaat
+    $query = "SELECT id FROM users WHERE username='$reg_username'";
+    $result = mysqli_query($conn, $query);
+
+    if (mysqli_num_rows($result) > 0) {
+        echo 'Deze gebruikersnaam is al in gebruik!';
+    } else {
+        // Gebruiker toevoegen aan de database
+        $query = "INSERT INTO users (username, password) VALUES ('$reg_username', '$reg_password')";
+
+        if (mysqli_query($conn, $query)) {
+            echo 'Registratie succesvol!';
+        } else {
+            echo 'Er is een fout opgetreden tijdens het registreren.';
+        }
+    }
+}
+
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Inloggen en registreren</title>
+</head>
+<body>
+
+<h1>Inloggen</h1>
+
+<form method="post" action="index.php">
+    <label for="username">Gebruikersnaam:</label>
+    <input type="text" name="username" id="username">
+
+    <label for="password">Wachtwoord:</label>
+    <input type="password" name="password" id="password">
+
+    <input type="submit" value="Inloggen">
+</form>
+
+<h1>Registreren</h1
